@@ -492,8 +492,8 @@
     <script>
         // Konfigurasi
         const CONFIG = {
-            APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbzu8EwImuUEBewb1CDW6QFp_uH9NhHZtL29Zh2u4jq7Fux_CN1iLeENG4Hk_YectYg/exec', // URL Apps Script yang diperbarui
-            // CSV_URL sekarang akan diakses melalui Apps Script
+            APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbwV_efAAiIe9PYCIoaXjZqsgG9WD3d5j-2IcYXDh0F95BdiKbStporUNhp0Syec-yEw/exec', // URL Apps Script
+            // CSV_URL tidak lagi digunakan langsung di sini, Apps Script akan mengelola fetching master data
             LOKASI_OPTIONS: ['Kantor', 'Toko', 'Sales', 'Kolektor']
         };
 
@@ -641,8 +641,8 @@
             try {
                 showLoading(true);
                 
-                // Muat master data melalui Apps Script
-                await loadMasterData();
+                // Muat master data dari Apps Script
+                await loadMasterData(); // Perubahan di sini
                 
                 // Muat data API
                 await loadApiData();
@@ -668,7 +668,7 @@
         async function loadMasterData() {
             try {
                 console.log('Memuat master data dari Apps Script...');
-                const response = await fetch(`${CONFIG.APPS_SCRIPT_URL}?action=getMasterData`); // Panggil Apps Script untuk data master
+                const response = await fetch(`${CONFIG.APPS_SCRIPT_URL}?action=getMasterData`); // Memanggil Apps Script
                 
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
@@ -711,21 +711,26 @@
             }
         }
 
-        // Mengurai data CSV (fungsi ini sekarang tidak digunakan, tetapi disimpan jika diperlukan untuk CSV lokal di masa mendatang)
+        // Fungsi parseCSV tidak lagi digunakan untuk masterData, tetapi disimpan jika ada kebutuhan lain.
         function parseCSV(csvText) {
             const lines = csvText.trim().split('\n');
+            if (lines.length <= 1) { 
+                return [];
+            }
             const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
             const data = [];
             
             for (let i = 1; i < lines.length; i++) {
                 const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
+                if (values.length === 0 || (values.length === 1 && values[0] === '')) { 
+                    continue;
+                }
                 const row = {};
                 headers.forEach((header, index) => {
                     row[header] = values[index] || '';
                 });
                 data.push(row);
             }
-            
             return data;
         }
 
