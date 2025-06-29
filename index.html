@@ -128,7 +128,6 @@
             outline: none;
             border-color: #667eea;
             box-shadow: 0 0 20px rgba(102, 126, 234, 0.3);
-            /* transform: translateY(-2px); */ /* Dihilangkan */
         }
 
         .btn {
@@ -150,7 +149,6 @@
         }
 
         .btn-primary:hover {
-            /* transform: translateY(-3px); */ /* Dihilangkan */
             box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
         }
 
@@ -203,7 +201,6 @@
         }
 
         .logout-btn:hover {
-            /* transform: translateY(-2px); */ /* Dihilangkan */
             box-shadow: 0 5px 15px rgba(245, 87, 108, 0.4);
         }
 
@@ -291,7 +288,6 @@
 
         .data-table tr:hover {
             background: rgba(102, 126, 234, 0.1);
-            /* transform: translateY(-2px); */ /* Dihilangkan */
         }
 
         .editable-cell {
@@ -437,7 +433,7 @@
                     <input type="password" id="pinInput" class="form-input" placeholder="Masukkan PIN" required>
                 </div>
                 <button type="submit" class="btn btn-primary">LOGIN</button>
-                <button type="button" class="btn btn-secondary" onclick="debugSheetStructure()" style="margin-top: 10px;">Debug Sheet</button>
+                <!-- Tombol debugSheetStructure dihilangkan -->
             </form>
             <div id="loginAlert"></div>
         </div>
@@ -497,27 +493,13 @@
     <script>
         // Konfigurasi
         const CONFIG = {
-            APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbzbiqIlZletcsjMI3xs9M-TCfIPTSbGIR6r_kOCEdYrgDUQERmkHYwSOJvrr8MkAEZZ/exec', // Ganti dengan URL Apps Script Anda
+            APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbzbiqIlZletcsjMI3xs9M-TCfIPTSbGIR6r_kOCEdYrgDUQERmkHYwSOJvrr8MkAEZZ/exec', // URL Apps Script yang diperbarui
             CSV_URL: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTXsbh4-sMEVfaBTSgHJI13nMK1LxvLZunHOeneWCUrzEjbplYmWpGEQW2TgqmrLqWMS-RtLJ0Y3Mjo/pub?gid=79503768&single=true&output=csv',
             LOKASI_OPTIONS: ['Kantor', 'Toko', 'Sales', 'Kolektor']
         };
 
-        // Fungsi Debug untuk memeriksa struktur sheet
-        async function debugSheetStructure() {
-            try {
-                console.log('=== DEBUG: Memeriksa Struktur Sheet ===');
-                const response = await fetch(`${CONFIG.APPS_SCRIPT_URL}?action=getRoles`);
-                const data = await response.json();
-                console.log('Respon mentah:', data);
-                
-                if (data && data.length > 0) {
-                    console.log('Objek peran pertama:', data[0]);
-                    console.log('Kunci objek:', Object.keys(data[0]));
-                }
-            } catch (error) {
-                console.error('Error debug:', error);
-            }
-        }
+        // Fungsi Debug untuk memeriksa struktur sheet (dihilangkan)
+        // async function debugSheetStructure() { /* Kode yang dihapus */ }
 
         // Variabel global
         let currentUser = null;
@@ -538,13 +520,8 @@
                 populateCabangSelect();
                 setupEventListeners();
                 
-                // Debug struktur sheet
-                if (CONFIG.APPS_SCRIPT_URL.includes('YOUR_SCRIPT_ID')) {
-                    console.warn('PERINGATAN: Anda belum mengganti YOUR_SCRIPT_ID dengan URL Apps Script yang sebenarnya!');
-                    showAlert('loginAlert', 'Peringatan: Apps Script URL belum dikonfigurasi. Menggunakan data demo.', 'error');
-                } else {
-                    await debugSheetStructure();
-                }
+                // Pemeriksaan Apps Script URL dihilangkan karena URL sudah ditetapkan
+                // dan fitur debug dihapus.
                 
             } catch (error) {
                 console.error('Error menginisialisasi aplikasi:', error);
@@ -558,10 +535,6 @@
             document.getElementById('logoutBtn').addEventListener('click', handleLogout);
             document.getElementById('searchInput').addEventListener('input', handleSearch);
             document.getElementById('cabangFilter').addEventListener('change', handleCabangFilter);
-
-            // Menghilangkan event listener animasi pergeseran
-            // document.addEventListener('mousemove', function(e) { /* Kode yang dihapus */ });
-            // document.addEventListener('mouseleave', function() { /* Kode yang dihapus */ });
         }
 
         // Memuat data peran
@@ -590,15 +563,9 @@
                 
             } catch (error) {
                 console.error('Error memuat peran:', error);
-                showAlert('loginAlert', 'Gagal memuat data peran. Menggunakan data demo.', 'error');
-                
-                // Menggunakan data fallback untuk demo
-                rolesData = [
-                    { cabang: 'JKT', pin: '1234' },
-                    { cabang: 'SBY', pin: '5678' },
-                    { cabang: 'BDG', pin: '9012' }
-                ];
-                console.log('Menggunakan data peran fallback:', rolesData);
+                showAlert('loginAlert', 'Gagal memuat data role. Pastikan Apps Script URL sudah benar dan dapat diakses.', 'error');
+                // Data fallback dihilangkan, aplikasi akan gagal jika Apps Script tidak tersedia
+                rolesData = []; 
             }
         }
 
@@ -713,30 +680,9 @@
                 masterData = parseCSV(csvText);
             } catch (error) {
                 console.error('Error memuat master data:', error);
-                // Menggunakan data fallback untuk demo
-                masterData = [
-                    {
-                        invoice: 'INV001',
-                        tanggal: '2024-01-15',
-                        pelanggan: 'PT ABC',
-                        'original value': '1000000',
-                        cabang: 'JKT'
-                    },
-                    {
-                        invoice: 'INV002',
-                        tanggal: '2024-01-16',
-                        pelanggan: 'PT DEF',
-                        'original value': '2000000',
-                        cabang: 'SBY'
-                    },
-                    {
-                        invoice: 'INV003',
-                        tanggal: '2024-01-17',
-                        pelanggan: 'PT GHI',
-                        'original value': '1500000',
-                        cabang: 'BDG'
-                    }
-                ];
+                showAlert('appAlert', 'Gagal memuat master data dari CSV. Pastikan URL CSV sudah benar.', 'error');
+                // Data fallback dihilangkan
+                masterData = [];
             }
         }
 
@@ -751,6 +697,7 @@
                 apiData = data;
             } catch (error) {
                 console.error('Error memuat data API:', error);
+                showAlert('appAlert', 'Gagal memuat data API. Pastikan Apps Script URL sudah benar.', 'error');
                 apiData = [];
             }
         }
