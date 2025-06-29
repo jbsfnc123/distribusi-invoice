@@ -427,6 +427,7 @@
                     <input type="password" id="pinInput" class="form-input" placeholder="Masukkan PIN" required>
                 </div>
                 <button type="submit" class="btn btn-primary">LOGIN</button>
+                <button type="button" class="btn btn-secondary" onclick="debugSheetStructure()" style="margin-top: 10px;">Debug Sheet</button>
             </form>
             <div id="loginAlert"></div>
         </div>
@@ -491,6 +492,23 @@
             LOKASI_OPTIONS: ['Kantor', 'Toko', 'Sales', 'Kolektor']
         };
 
+        // Debug function to check sheet structure
+        async function debugSheetStructure() {
+            try {
+                console.log('=== DEBUG: Checking Sheet Structure ===');
+                const response = await fetch(`${CONFIG.APPS_SCRIPT_URL}?action=getRoles`);
+                const data = await response.json();
+                console.log('Raw response:', data);
+                
+                if (data && data.length > 0) {
+                    console.log('First role object:', data[0]);
+                    console.log('Object keys:', Object.keys(data[0]));
+                }
+            } catch (error) {
+                console.error('Debug error:', error);
+            }
+        }
+
         // Global variables
         let currentUser = null;
         let masterData = [];
@@ -505,9 +523,19 @@
 
         async function initializeApp() {
             try {
+                console.log('=== Initializing App ===');
                 await loadRolesData();
                 populateCabangSelect();
                 setupEventListeners();
+                
+                // Debug sheet structure
+                if (CONFIG.APPS_SCRIPT_URL.includes('YOUR_SCRIPT_ID')) {
+                    console.warn('PERINGATAN: Anda belum mengganti YOUR_SCRIPT_ID dengan URL Apps Script yang sebenarnya!');
+                    showAlert('loginAlert', 'Peringatan: Apps Script URL belum dikonfigurasi. Menggunakan data demo.', 'error');
+                } else {
+                    await debugSheetStructure();
+                }
+                
             } catch (error) {
                 console.error('Error initializing app:', error);
                 showAlert('loginAlert', 'Gagal memuat data. Silakan refresh halaman.', 'error');
@@ -530,41 +558,90 @@
 
         async function loadRolesData() {
             try {
+                console.log('Loading roles data...');
                 const response = await fetch(`${CONFIG.APPS_SCRIPT_URL}?action=getRoles`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
                 const data = await response.json();
+                console.log('Received roles data:', data);
+                
                 if (data.error) {
                     throw new Error(data.error);
                 }
+                
+                if (!Array.isArray(data) || data.length === 0) {
+                    throw new Error('No roles data received');
+                }
+                
                 rolesData = data;
+                console.log('Roles data loaded successfully:', rolesData);
+                
             } catch (error) {
                 console.error('Error loading roles:', error);
+                showAlert('loginAlert', 'Gagal memuat data role. Menggunakan data demo.', 'error');
+                
                 // Use fallback data for demo
                 rolesData = [
                     { cabang: 'JKT', pin: '1234' },
                     { cabang: 'SBY', pin: '5678' },
                     { cabang: 'BDG', pin: '9012' }
                 ];
+                console.log('Using fallback roles data:', rolesData);
             }
         }
 
         function populateCabangSelect() {
             const select = document.getElementById('cabangSelect');
+            
+            // Clear existing options except the first one
+            while (select.children.length > 1) {
+                select.removeChild(select.lastChild);
+            }
+            
+            console.log('Populating cabang select with:', rolesData);
+            
             rolesData.forEach(role => {
-                const option = document.createElement('option');
-                option.value = role.cabang;
-                option.textContent = role.cabang;
-                select.appendChild(option);
+                if (role.cabang) {
+                    const option = document.createElement('option');
+                    option.value = role.cabang;
+                    option.textContent = role.cabang;
+                    select.appendChild(option);
+                }
             });
+            
+            console.log('Cabang select populated, total options:', select.children.length);
         }
 
         async function handleLogin(e) {
             e.preventDefault();
             
-            const cabang = document.getElementById('cabangSelect').value;
-            const pin = document.getElementById('pinInput').value;
+            const cabang = document.getElementById('cabangSelect').value.trim();
+            const pin = document.getElementById('pinInput').value.trim();
             
-            // Validate login
-            const user = rolesData.find(role => role.cabang === cabang && role.pin === pin);
+            console.log('Login attempt:', { cabang, pin });
+            console.log('Available roles:', rolesData);
+            
+            if (!cabang || !pin) {
+                showAlert('loginAlert', 'Silakan pilih cabang dan masukkan PIN!', 'error');
+                return;
+            }
+            
+            // Validate login - normalize data for comparison
+            const user = rolesData.find(role => {
+                const roleCabang = role.cabang ? role.cabang.toString().trim().toLowerCase() : '';
+                const rolePin = role.pin ? role.pin.toString().trim() : '';
+                const inputCabang = cabang.toLowerCase();
+                const inputPin = pin;
+                
+                console.log('Comparing:', { roleCabang, rolePin, inputCabang, inputPin });
+                
+                return roleCabang === inputCabang && rolePin === inputPin;
+            });
+            
+            console.log('Login result:', user);
             
             if (user) {
                 currentUser = user;
@@ -572,9 +649,11 @@
                 document.getElementById('mainApp').classList.remove('hidden');
                 document.getElementById('userCabang').textContent = `Cabang: ${cabang}`;
                 
+                showAlert('appAlert', 'Login berhasil!', 'success');
                 await loadMainData();
             } else {
-                showAlert('loginAlert', 'Cabang atau PIN salah!', 'error');
+                showAlert('loginAlert', 'Cabang atau PIN salah! Silakan periksa kembali.', 'error');
+                console.log('Login failed - credentials not found');
             }
         }
 
