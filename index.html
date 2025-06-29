@@ -433,7 +433,6 @@
                     <input type="password" id="pinInput" class="form-input" placeholder="Masukkan PIN" required>
                 </div>
                 <button type="submit" class="btn btn-primary">LOGIN</button>
-                <!-- Tombol debugSheetStructure dihilangkan -->
             </form>
             <div id="loginAlert"></div>
         </div>
@@ -493,13 +492,10 @@
     <script>
         // Konfigurasi
         const CONFIG = {
-            APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbzbiqIlZletcsjMI3xs9M-TCfIPTSbGIR6r_kOCEdYrgDUQERmkHYwSOJvrr8MkAEZZ/exec', // URL Apps Script yang diperbarui
-            CSV_URL: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTXsbh4-sMEVfaBTSgHJI13nMK1LxvLZunHOeneWCUrzEjbplYmWpGEQW2TgqmrLqWMS-RtLJ0Y3Mjo/pub?gid=79503768&single=true&output=csv',
+            APPS_SCRIPT_URL: 'https://script.google.com/macros/library/d/1Ltl9s3mzsqhB5l3jKtFqdQWL50L0-d2g96Q1q8VCbDE8LIwwWZjXEqL8/6', // URL Apps Script yang diperbarui
+            // CSV_URL sekarang akan diakses melalui Apps Script
             LOKASI_OPTIONS: ['Kantor', 'Toko', 'Sales', 'Kolektor']
         };
-
-        // Fungsi Debug untuk memeriksa struktur sheet (dihilangkan)
-        // async function debugSheetStructure() { /* Kode yang dihapus */ }
 
         // Variabel global
         let currentUser = null;
@@ -519,9 +515,6 @@
                 await loadRolesData();
                 populateCabangSelect();
                 setupEventListeners();
-                
-                // Pemeriksaan Apps Script URL dihilangkan karena URL sudah ditetapkan
-                // dan fitur debug dihapus.
                 
             } catch (error) {
                 console.error('Error menginisialisasi aplikasi:', error);
@@ -564,7 +557,6 @@
             } catch (error) {
                 console.error('Error memuat peran:', error);
                 showAlert('loginAlert', 'Gagal memuat data role. Pastikan Apps Script URL sudah benar dan dapat diakses.', 'error');
-                // Data fallback dihilangkan, aplikasi akan gagal jika Apps Script tidak tersedia
                 rolesData = []; 
             }
         }
@@ -649,7 +641,7 @@
             try {
                 showLoading(true);
                 
-                // Muat master data dari CSV
+                // Muat master data melalui Apps Script
                 await loadMasterData();
                 
                 // Muat data API
@@ -672,17 +664,34 @@
             }
         }
 
-        // Memuat master data dari CSV
+        // Memuat master data dari Apps Script
         async function loadMasterData() {
             try {
-                const response = await fetch(CONFIG.CSV_URL);
-                const csvText = await response.text();
-                masterData = parseCSV(csvText);
+                console.log('Memuat master data dari Apps Script...');
+                const response = await fetch(`${CONFIG.APPS_SCRIPT_URL}?action=getMasterData`); // Panggil Apps Script untuk data master
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                console.log('Menerima master data:', data);
+
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                if (!Array.isArray(data) || data.length === 0) {
+                    throw new Error('Tidak ada master data yang diterima');
+                }
+
+                masterData = data;
+                console.log('Master data berhasil dimuat:', masterData);
+
             } catch (error) {
                 console.error('Error memuat master data:', error);
-                showAlert('appAlert', 'Gagal memuat master data dari CSV. Pastikan URL CSV sudah benar.', 'error');
-                // Data fallback dihilangkan
-                masterData = [];
+                showAlert('appAlert', 'Gagal memuat master data. Pastikan Apps Script Anda memiliki fungsi "getMasterData" yang benar.', 'error');
+                masterData = []; // Tetapkan kosong jika gagal
             }
         }
 
@@ -702,7 +711,7 @@
             }
         }
 
-        // Mengurai data CSV
+        // Mengurai data CSV (fungsi ini sekarang tidak digunakan, tetapi disimpan jika diperlukan untuk CSV lokal di masa mendatang)
         function parseCSV(csvText) {
             const lines = csvText.trim().split('\n');
             const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
