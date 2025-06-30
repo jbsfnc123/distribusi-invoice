@@ -492,11 +492,9 @@
     <script>
         // Konfigurasi
         const CONFIG = {
-            APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbz5rdUmgrmLvKYbfYeWL7ElE_L92Kd7rSZYANLmZ4S9QfGMwvrA_hjclGwYzb3X0yxz/exec',
-            CSV_URL: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTXsbh4-sMEVfaBTSgHJI13nMK1LxvLZunHOeneWCUrzEjbplYmWpGEQW2TgqmrLqWMS-RtLJ0Y3Mjo/pub?gid=797503768&single=true&output=csv',
-            LOKASI_OPTIONS: ['Kantor', 'Toko', 'Sales', 'Kolektor'],
-            RETRY_COUNT: 3,
-            RETRY_DELAY: 1000
+            APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbySMtpan8Qql0H2Db33G0I_HQWRrtsv3ap-0U3b-6pY9XKmQhdAt3W7PCrMrZfgaFJ4/exec', // URL Apps Script yang diperbarui
+            CSV_URL: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTXsbh4-sMEVfaBTSgHJI13nMK1LxvLZunHOeneWCUrzEjbplYmWpGEQW2TgqmrLqWMS-RtLJ0Y3Mjo/pub?gid=797503768&single=true&output=csv', // URL CSV untuk data master
+            LOKASI_OPTIONS: ['Kantor', 'Toko', 'Sales', 'Kolektor']
         };
 
         // Variabel global
@@ -532,43 +530,477 @@
             document.getElementById('cabangFilter').addEventListener('change', handleCabangFilter);
         }
 
-        // Fungsi retry untuk API calls
-        async function retryApiCall(fn, retries = CONFIG.RETRY_COUNT) {
-            try {
-                return await fn();
-            } catch (error) {
-                if (retries > 0) {
-                    console.log(`API call failed, retrying... (${CONFIG.RETRY_COUNT - retries + 1}/${CONFIG.RETRY_COUNT})`);
-                    await new Promise(resolve => setTimeout(resolve, CONFIG.RETRY_DELAY));
-                    return await retryApiCall(fn, retries - 1);
-                }
-                throw error;
-            }
-        }
-
-        // Memuat data peran dengan error handling yang lebih baik
+        // Memuat data peran
         async function loadRolesData() {
             try {
                 console.log('Memuat data peran...');
+                const response = await fetch(`${CONFIG.APPS_SCRIPT_URL}?action=getRoles`);
                 
-                const response = await retryApiCall(async () => {
-                    const response = await fetch(`${CONFIG.APPS_SCRIPT_URL}?action=getRoles&t=${Date.now()}`, {
-                        method: 'GET',
-                        headers: {
-                            'Accept': 'application/json',
-                            'Content-Type': 'application/json'
-                        },
-                        mode: 'cors'
-                    });
-                    
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-                    
-                    return response;
-                });
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
                 
                 const data = await response.json();
                 console.log('Menerima data peran:', data);
                 
                 if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                if (!Array.isArray(data) || data.length === 0) {
+                    throw new Error('Tidak ada data peran yang diterima');
+                }
+                
+                rolesData = data;
+                console.log('Data peran berhasil dimuat:', rolesData);
+                
+            } catch (error) {
+                console.error('Error memuat peran:', error);
+                showAlert('loginAlert', 'Gagal memuat data role. Pastikan Apps Script URL sudah benar dan dapat diakses.', 'error');
+                rolesData = []; 
+            }
+        }
+
+        // Mengisi pilihan cabang di form login
+        function populateCabangSelect() {
+            const select = document.getElementById('cabangSelect');
+            
+            // Hapus opsi yang ada kecuali opsi pertama
+            while (select.children.length > 1) {
+                select.removeChild(select.lastChild);
+            }
+            
+            console.log('Mengisi pilihan cabang dengan:', rolesData);
+            
+            rolesData.forEach(role => {
+                if (role.cabang) {
+                    const option = document.createElement('option');
+                    option.value = role.cabang;
+                    option.textContent = role.cabang;
+                    select.appendChild(option);
+                }
+            });
+            
+            console.log('Pilihan cabang diisi, total opsi:', select.children.length);
+        }
+
+        // Menangani proses login
+        async function handleLogin(e) {
+            e.preventDefault();
+            
+            const cabang = document.getElementById('cabangSelect').value.trim();
+            const pin = document.getElementById('pinInput').value.trim();
+            
+            console.log('Percobaan login:', { cabang, pin });
+            console.log('Peran yang tersedia:', rolesData);
+            
+            if (!cabang || !pin) {
+                showAlert('loginAlert', 'Silakan pilih cabang dan masukkan PIN!', 'error');
+                return;
+            }
+            
+            // Validasi login - normalisasi data untuk perbandingan
+            const user = rolesData.find(role => {
+                const roleCabang = role.cabang ? role.cabang.toString().trim().toLowerCase() : '';
+                const rolePin = role.pin ? role.pin.toString().trim() : '';
+                const inputCabang = cabang.toLowerCase();
+                const inputPin = pin;
+                
+                console.log('Membandingkan:', { roleCabang, rolePin, inputCabang, inputPin });
+                
+                return roleCabang === inputCabang && rolePin === inputPin;
+            });
+            
+            console.log('Hasil login:', user);
+            
+            if (user) {
+                currentUser = user;
+                document.getElementById('loginScreen').classList.add('hidden');
+                document.getElementById('mainApp').classList.remove('hidden');
+                document.getElementById('userCabang').textContent = `Cabang: ${cabang}`;
+                
+                showAlert('appAlert', 'Login berhasil!', 'success');
+                await loadMainData();
+            } else {
+                showAlert('loginAlert', 'Cabang atau PIN salah! Silakan periksa kembali.', 'error');
+                console.log('Login gagal - kredensial tidak ditemukan');
+            }
+        }
+
+        // Menangani proses logout
+        function handleLogout() {
+            currentUser = null;
+            document.getElementById('mainApp').classList.add('hidden');
+            document.getElementById('loginScreen').classList.remove('hidden');
+            document.getElementById('loginForm').reset();
+            clearAlert('loginAlert');
+        }
+
+        // Memuat data utama (master data dan API data)
+        async function loadMainData() {
+            try {
+                showLoading(true);
+                
+                // Muat master data dari CSV
+                await loadMasterData();
+                
+                // Muat data API
+                await loadApiData();
+                
+                // Gabungkan data
+                combineData();
+                
+                // Isi filter cabang
+                populateCabangFilter();
+                
+                // Render tabel
+                renderTable();
+                
+                showLoading(false);
+            } catch (error) {
+                console.error('Error memuat data utama:', error);
+                showAlert('appAlert', 'Gagal memuat data. Silakan refresh halaman.', 'error');
+                showLoading(false);
+            }
+        }
+
+        // Memuat master data dari CSV langsung
+        async function loadMasterData() {
+            try {
+                console.log('Memuat master data dari CSV...');
+                const response = await fetch(CONFIG.CSV_URL);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const csvText = await response.text();
+                masterData = parseCSV(csvText); // Gunakan parseCSV
+                console.log('Master data berhasil dimuat dari CSV:', masterData);
+            } catch (error) {
+                console.error('Error memuat master data dari CSV:', error);
+                showAlert('appAlert', 'Gagal memuat master data dari CSV. Pastikan URL CSV sudah benar dan dapat diakses.', 'error');
+                masterData = [];
+            }
+        }
+
+        // Memuat data dari API Apps Script
+        async function loadApiData() {
+            try {
+                const response = await fetch(`${CONFIG.APPS_SCRIPT_URL}?action=getApiData`);
+                const data = await response.json();
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                apiData = data;
+            } catch (error) {
+                console.error('Error memuat data API:', error);
+                showAlert('appAlert', 'Gagal memuat data API. Pastikan Apps Script URL sudah benar.', 'error');
+                apiData = [];
+            }
+        }
+
+        // Mengurai data CSV
+        function parseCSV(csvText) {
+            const lines = csvText.trim().split('\n');
+            if (lines.length <= 1) { 
+                return [];
+            }
+            const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+            const data = [];
+            
+            for (let i = 1; i < lines.length; i++) {
+                const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
+                if (values.length === 0 || (values.length === 1 && values[0] === '')) { 
+                    continue;
+                }
+                const row = {};
+                headers.forEach((header, index) => {
+                    row[header] = values[index] || '';
+                });
+                data.push(row);
+            }
+            return data;
+        }
+
+        // Menggabungkan master data dan data API
+        function combineData() {
+            combinedData = masterData.map(master => {
+                const api = apiData.find(a => a.invoice === master.invoice) || {};
+                return {
+                    ...master,
+                    'lokasi invoice': api['lokasi invoice'] || '',
+                    'tanggal tanda terima': api['tanggal tanda terima'] || ''
+                };
+            });
+        }
+
+        // Mengisi pilihan filter cabang
+        function populateCabangFilter() {
+            const select = document.getElementById('cabangFilter');
+            // Hapus opsi yang ada kecuali opsi "Semua Cabang"
+            while (select.children.length > 1) {
+                select.removeChild(select.lastChild);
+            }
+
+            const cabangList = [...new Set(combinedData.map(item => item.cabang))].sort();
+            
+            cabangList.forEach(cabang => {
+                const option = document.createElement('option');
+                option.value = cabang;
+                option.textContent = cabang;
+                select.appendChild(option);
+            });
+        }
+
+        // Merender tabel data
+        function renderTable() {
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
+            
+            let filteredData = [...combinedData];
+            
+            // Terapkan filter cabang
+            const cabangFilter = document.getElementById('cabangFilter').value;
+            // Jika pengguna bukan JKT, hanya tampilkan data cabangnya
+            if (currentUser.cabang !== 'JKT') {
+                filteredData = filteredData.filter(item => item.cabang === currentUser.cabang);
+            } else if (cabangFilter) { // Jika pengguna JKT dan filter cabang dipilih
+                filteredData = filteredData.filter(item => item.cabang === cabangFilter);
+            }
+            
+            // Terapkan filter pencarian
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            if (searchTerm) {
+                filteredData = filteredData.filter(item => 
+                    item.invoice.toLowerCase().includes(searchTerm) ||
+                    item.pelanggan.toLowerCase().includes(searchTerm)
+                );
+            }
+            
+            filteredData.forEach(item => {
+                const row = document.createElement('tr');
+                
+                // Logika hak akses:
+                // JKT bisa edit semua.
+                // Cabang lain hanya bisa edit data yang cabangnya sama dengan cabang mereka.
+                const canEdit = currentUser.cabang === 'JKT' || currentUser.cabang === item.cabang;
+                const status = (item['lokasi invoice'] && item['tanggal tanda terima']) ? 'completed' : 'pending';
+                
+                row.innerHTML = `
+                    <td>${item.invoice}</td>
+                    <td>${item.tanggal}</td>
+                    <td>${item.pelanggan}</td>
+                    <td>${formatCurrency(item['original value'])}</td>
+                    <td>${item.cabang}</td>
+                    <td class="editable-cell">
+                        ${canEdit ? createLokasiSelect(item.invoice, item['lokasi invoice']) : item['lokasi invoice']}
+                    </td>
+                    <td class="editable-cell">
+                        ${canEdit ? createDateInput(item.invoice, item['tanggal tanda terima']) : item['tanggal tanda terima']}
+                    </td>
+                    <td>
+                        <span class="status-badge status-${status}">
+                            ${status === 'completed' ? 'Selesai' : 'Pending'}
+                        </span>
+                    </td>
+                `;
+                
+                tbody.appendChild(row);
+            });
+            
+            document.getElementById('dataTable').classList.remove('hidden');
+        }
+
+        // Membuat elemen select untuk lokasi invoice
+        function createLokasiSelect(invoice, currentValue) {
+            const select = document.createElement('select');
+            select.className = 'editable-input';
+            select.onchange = () => updateInvoice(invoice, 'lokasi_invoice', select.value);
+            
+            // Tambahkan opsi kosong
+            const emptyOption = document.createElement('option');
+            emptyOption.value = '';
+            emptyOption.textContent = '-- Pilih Lokasi --';
+            emptyOption.selected = !currentValue;
+            select.appendChild(emptyOption);
+            
+            // Tambahkan opsi lokasi
+            CONFIG.LOKASI_OPTIONS.forEach(lokasi => {
+                const option = document.createElement('option');
+                option.value = lokasi;
+                option.textContent = lokasi;
+                option.selected = currentValue === lokasi;
+                select.appendChild(option);
+            });
+            
+            return select.outerHTML;
+        }
+
+        // Membuat elemen input tanggal
+        function createDateInput(invoice, currentValue) {
+            return `<input type="date" class="editable-input" value="${currentValue || ''}" 
+                    onchange="updateInvoice('${invoice}', 'tanggal_tanda_terima', this.value)">`;
+        }
+
+        // Memperbarui data invoice melalui API Apps Script
+        async function updateInvoice(invoice, field, value) {
+            try {
+                // Pastikan pengguna memiliki hak akses untuk mengedit
+                if (currentUser.cabang !== 'JKT') {
+                    const invoiceToUpdate = combinedData.find(item => item.invoice === invoice);
+                    if (invoiceToUpdate && invoiceToUpdate.cabang !== currentUser.cabang) {
+                        showAlert('appAlert', 'Anda tidak memiliki izin untuk mengedit invoice cabang lain.', 'error');
+                        return;
+                    }
+                }
+
+                const data = {
+                    invoice: invoice,
+                    [field]: value
+                };
+                
+                const response = await fetch(`${CONFIG.APPS_SCRIPT_URL}?action=updateInvoice`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Perbarui data lokal
+                    const apiItem = apiData.find(item => item.invoice === invoice);
+                    if (apiItem) {
+                        apiItem[field.replace('_', ' ')] = value;
+                    } else {
+                        apiData.push({
+                            invoice: invoice,
+                            [field.replace('_', ' ')]: value
+                        });
+                    }
+                    
+                    // Gabungkan kembali dan render ulang tabel
+                    combineData();
+                    renderTable();
+                    
+                    showAlert('appAlert', 'Data berhasil diperbarui!', 'success');
+                } else {
+                    throw new Error(result.message);
+                }
+            } catch (error) {
+                console.error('Error memperbarui invoice:', error);
+                showAlert('appAlert', 'Gagal memperbarui data: ' + error.message, 'error');
+            }
+        }
+
+        // Menangani pencarian
+        function handleSearch() {
+            renderTable();
+        }
+
+        // Menangani filter cabang
+        function handleCabangFilter() {
+            renderTable();
+        }
+
+        // Memformat nilai mata uang
+        function formatCurrency(value) {
+            if (!value) return '';
+            return new Intl.NumberFormat('id-ID', {
+                style: 'currency',
+                currency: 'IDR',
+                minimumFractionDigits: 0
+            }).format(value);
+        }
+
+        // Menampilkan/menyembunyikan spinner loading
+        function showLoading(show) {
+            const spinner = document.getElementById('loadingSpinner');
+            const table = document.getElementById('dataTable');
+            
+            if (show) {
+                spinner.classList.remove('hidden');
+                table.classList.add('hidden');
+            } else {
+                spinner.classList.add('hidden');
+                table.classList.remove('hidden');
+            }
+        }
+
+        // Menampilkan pesan alert
+        function showAlert(containerId, message, type) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = `
+                <div class="alert alert-${type}">
+                    ${message}
+                </div>
+            `;
+            
+            // Sembunyikan otomatis setelah 5 detik
+            setTimeout(() => {
+                clearAlert(containerId);
+            }, 5000);
+        }
+
+        // Menghilangkan pesan alert
+        function clearAlert(containerId) {
+            document.getElementById(containerId).innerHTML = '';
+        }
+
+        // Fungsi utilitas untuk memanggil API dengan penanganan error
+        async function makeApiCall(action, data = null) {
+            try {
+                const url = `${CONFIG.APPS_SCRIPT_URL}?action=${action}`;
+                const options = {
+                    method: data ? 'POST' : 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                };
+                
+                if (data) {
+                    options.body = JSON.stringify(data);
+                }
+                
+                const response = await fetch(url, options);
+                const result = await response.json();
+                
+                if (result.error) {
+                    throw new Error(result.error);
+                }
+                
+                return result;
+            } catch (error) {
+                console.error(`Panggilan API gagal untuk aksi: ${action}`, error);
+                throw error;
+            }
+        }
+
+        // Pintasan keyboard
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.key === 'f') {
+                e.preventDefault();
+                document.getElementById('searchInput').focus();
+            }
+            
+            if (e.key === 'Escape') {
+                document.getElementById('searchInput').value = '';
+                renderTable();
+            }
+        });
+
+        // Pengguliran halus untuk UX yang lebih baik
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                document.querySelector(this.getAttribute('href')).scrollIntoView({
+                    behavior: 'smooth'
+                });
+            });
+        });
+    </script>
+</body>
+</html>
