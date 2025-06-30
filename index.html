@@ -336,7 +336,7 @@
         .editable-input:focus {
             outline: none;
             border-color: #667eea;
-            background: rgba(102, 126, 234, 0.1);
+            box-shadow: 0 0 20px rgba(102, 126, 234, 0.3);
         }
 
         /* Loading Spinner */
@@ -680,9 +680,11 @@
     <script>
         // Konfigurasi
         const CONFIG = {
-            // Ganti URL Apps Script Anda di sini. Pastikan ini adalah URL Deploy "Web app" terbaru.
-            APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbwq5xg7-RBqTwUtXEr4_VwlmUkNj0Y5EIgUfAil-FpFHi4dfVEcAtsjm9OoNg4MOfRE/exec', 
-            // URL CSV untuk data master, pastikan ini adalah URL "Publish to web" sebagai CSV
+            // GANTI DENGAN URL Apps Script Anda di sini.
+            // PASTIKAN INI ADALAH URL Deploy "Web app" TERBARU dari Google Apps Script Anda.
+            // Contoh: 'https://script.google.com/macros/s/AKfycbzRiuxnkv0P5Qnv9nBIZq2yONtceq3gNS8Fxt9e-ZwSqqh-mCWS3g8Pk8eHZy6hSB0n/exec', 
+            APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbyt3RRZWIsvZf2x_ANvDy4LRPQQEl28SWnqOOaalw4yj6w5wxOhUzM_0t8AwRUh8h2o/exec', 
+            // URL CSV untuk data master invoice, pastikan ini adalah URL "Publish to web" sebagai CSV
             CSV_URL: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTXsbh4-sMEVfaBTSgHJI13nMK1LxvLZunHOeneWCUrzEjbplYmWpGEQW2TgqmrLqWMS-RtLJ0Y3Mjo/pub?gid=797503768&single=true&output=csv', 
             LOKASI_OPTIONS: ['Kantor', 'Toko', 'Sales', 'Kolektor']
         };
@@ -703,7 +705,7 @@
         async function initializeApp() {
             try {
                 console.log('=== Menginisialisasi Aplikasi ===');
-                await loadRolesData(); // Muat data peran terlebih dahulu
+                await loadRolesData(); // Muat data peran terlebih dahulu (sekarang dari Apps Script yang membaca CSV)
                 populateCabangSelect(); // Isi dropdown cabang login
                 setupEventListeners(); // Siapkan semua event listener
                 
@@ -735,16 +737,18 @@
         // Memuat data peran (role model) dari Apps Script
         async function loadRolesData() {
             try {
-                console.log('Memuat data peran (role model)...');
+                console.log('Memuat data peran (role model) dari Apps Script...');
+                // Memanggil makeApiCall untuk aksi 'getRoles'
                 const data = await makeApiCall('getRoles');
                 if (!Array.isArray(data)) {
-                    throw new Error('Format data peran tidak valid. Diharapkan array.');
+                    throw new Error('Format data peran tidak valid dari Apps Script. Diharapkan array.');
                 }
                 rolesData = data;
-                console.log('Data peran berhasil dimuat:', rolesData);
+                console.log('Data peran berhasil dimuat dari Apps Script:', rolesData);
             } catch (error) {
-                console.error('Error memuat peran:', error);
-                showAlert('loginAlert', 'Gagal memuat data role. Pastikan Apps Script URL sudah benar dan sheet "role model" ada.', 'error');
+                console.error('Error memuat peran dari Apps Script:', error);
+                // Pesan error ini sekarang lebih jelas menunjukkan bahwa masalah mungkin ada di Apps Script itu sendiri
+                showAlert('loginAlert', 'Gagal memuat data role. Pastikan Apps Script URL sudah benar dan fungsi getRoles di Apps Script berfungsi. <br> Jika Anda menjalankan secara lokal atau di lingkungan sandbox, pastikan "Access-Control-Allow-Origin" di Apps Script diatur ke \'*\' (TIDAK DISARANKAN untuk produksi).', 'error');
                 rolesData = []; // Pastikan rolesData kosong jika ada error
             }
         }
@@ -800,7 +804,7 @@
                 document.getElementById('userCabang').textContent = `Cabang: ${cabang}`;
                 
                 // Tampilkan tombol tambah invoice jika user adalah JKT
-                if (currentUser.cabang === 'JKT') {
+                if (currentUser.cabang && currentUser.cabang.toString().toUpperCase() === 'JKT') {
                     document.getElementById('addInvoiceBtn').classList.remove('hidden');
                 } else {
                     document.getElementById('addInvoiceBtn').classList.add('hidden');
@@ -950,18 +954,18 @@
             // Terapkan filter cabang
             const cabangFilter = document.getElementById('cabangFilter').value;
             // Jika pengguna bukan JKT, hanya tampilkan data cabangnya
-            if (currentUser.cabang !== 'JKT') {
-                filteredData = filteredData.filter(item => item.cabang === currentUser.cabang);
+            if (currentUser.cabang && currentUser.cabang.toString().toUpperCase() !== 'JKT') {
+                filteredData = filteredData.filter(item => item.cabang && item.cabang.toString().toUpperCase() === currentUser.cabang.toString().toUpperCase());
             } else if (cabangFilter) { // Jika pengguna JKT dan filter cabang dipilih
-                filteredData = filteredData.filter(item => item.cabang === cabangFilter);
+                filteredData = filteredData.filter(item => item.cabang && item.cabang.toString().toUpperCase() === cabangFilter.toString().toUpperCase());
             }
             
             // Terapkan filter pencarian
             const searchTerm = document.getElementById('searchInput').value.toLowerCase();
             if (searchTerm) {
                 filteredData = filteredData.filter(item => 
-                    item.invoice.toLowerCase().includes(searchTerm) ||
-                    item.pelanggan.toLowerCase().includes(searchTerm)
+                    (item.invoice && item.invoice.toString().toLowerCase().includes(searchTerm)) ||
+                    (item.pelanggan && item.pelanggan.toString().toLowerCase().includes(searchTerm))
                 );
             }
             
@@ -977,17 +981,18 @@
                 // Logika hak akses:
                 // JKT bisa edit dan hapus semua.
                 // Cabang lain hanya bisa edit data yang cabangnya sama dengan cabang mereka.
-                const canEdit = currentUser.cabang === 'JKT' || (item.cabang && currentUser.cabang === item.cabang);
-                const canDelete = currentUser.cabang === 'JKT'; // Hanya JKT yang bisa menghapus
+                const canEdit = (currentUser.cabang && currentUser.cabang.toString().toUpperCase() === 'JKT') || 
+                                (item.cabang && currentUser.cabang && currentUser.cabang.toString().toUpperCase() === item.cabang.toString().toUpperCase());
+                const canDelete = (currentUser.cabang && currentUser.cabang.toString().toUpperCase() === 'JKT'); // Hanya JKT yang bisa menghapus
 
                 const status = (item['lokasi invoice'] && item['tanggal tanda terima']) ? 'completed' : 'pending';
                 
                 row.innerHTML = `
-                    <td>${item.invoice}</td>
-                    <td>${item.tanggal}</td>
-                    <td>${item.pelanggan}</td>
+                    <td>${item.invoice || '-'}</td>
+                    <td>${item.tanggal || '-'}</td>
+                    <td>${item.pelanggan || '-'}</td>
                     <td>${formatCurrency(item['original value'])}</td>
-                    <td>${item.cabang}</td>
+                    <td>${item.cabang || '-'}</td>
                     <td class="editable-cell">
                         ${canEdit ? createLokasiSelect(item.invoice, item['lokasi invoice']) : (item['lokasi invoice'] || '-')}
                     </td>
@@ -1050,9 +1055,9 @@
             clearAlert('appAlert');
             try {
                 // Pastikan pengguna memiliki hak akses untuk mengedit
-                if (currentUser.cabang !== 'JKT') {
+                if (currentUser.cabang && currentUser.cabang.toString().toUpperCase() !== 'JKT') {
                     const invoiceToUpdate = combinedData.find(item => item.invoice === invoice);
-                    if (invoiceToUpdate && invoiceToUpdate.cabang !== currentUser.cabang) {
+                    if (invoiceToUpdate && item.cabang && currentUser.cabang && invoiceToUpdate.cabang.toString().toUpperCase() !== currentUser.cabang.toString().toUpperCase()) {
                         showAlert('appAlert', 'Anda tidak memiliki izin untuk mengedit invoice cabang lain.', 'error');
                         showLoading(false);
                         return;
@@ -1064,7 +1069,7 @@
                     [field]: value
                 };
                 
-                const result = await makeApiCall('updateInvoice', data);
+                const result = await makeApiCall('updateInvoice', data, 'POST'); // Menggunakan method POST eksplisit
                 
                 if (result.success) {
                     // Perbarui data lokal di apiData
@@ -1131,7 +1136,7 @@
                 return;
             }
 
-            const invoiceExists = combinedData.some(item => item.invoice.toLowerCase() === newInvoiceNum.toLowerCase());
+            const invoiceExists = combinedData.some(item => item.invoice && item.invoice.toString().toLowerCase() === newInvoiceNum.toLowerCase());
             if (invoiceExists) {
                 showAlert('addInvoiceAlert', 'Nomor Invoice ini sudah ada!', 'error');
                 showLoading(false);
@@ -1163,14 +1168,15 @@
                     invoice: newData.invoice,
                     'lokasi invoice': newData['lokasi invoice'],
                     'tanggal tanda terima': newData['tanggal tanda terima'],
-                    tanggal: newData.tanggal, // Apps Script mungkin butuh tanggal dan lainnya juga
+                    tanggal: newData.tanggal, 
                     pelanggan: newData.pelanggan,
                     'original value': newData['original value'],
                     cabang: newData.cabang
-                });
+                }, 'POST'); // Menggunakan method POST eksplisit
 
                 if (apiResult.success) {
                     // Update apiData lokal jika addInvoice di Apps Script juga mengembalikan data yang ditambahkan
+                    // (Asumsi Apps Script hanya mengembalikan success/message, bukan data lengkap)
                     apiData.push({
                         invoice: newData.invoice,
                         'lokasi invoice': newData['lokasi invoice'],
@@ -1213,7 +1219,7 @@
             clearAlert('appAlert');
 
             try {
-                const result = await makeApiCall('deleteInvoice', { invoice: invoiceToDelete });
+                const result = await makeApiCall('deleteInvoice', { invoice: invoiceToDelete }, 'POST'); // Menggunakan method POST eksplisit
 
                 if (result.success) {
                     // Hapus dari data lokal
@@ -1313,9 +1319,9 @@
                 }
             };
 
-            // Untuk preflight OPTIONS request
+            // Untuk preflight OPTIONS request (penting untuk CORS POST/PUT/DELETE)
             if (options.method === 'OPTIONS') {
-                url += '&do=options'; // Indikator untuk Apps Script agar ini adalah OPTIONS request
+                url += '&do=options'; // Ini adalah penanda untuk Apps Script Anda
             }
             
             if (data && options.method !== 'GET') { // Hanya sertakan body untuk POST, PUT, DELETE
@@ -1340,11 +1346,12 @@
                 const result = await response.json();
                 console.log('Respons API:', result);
                 
-                if (!response.ok) { // Jika status HTTP bukan 2xx
+                // Jika status HTTP bukan 2xx (misalnya 4xx, 5xx)
+                if (!response.ok) { 
                     throw new Error(result.error || `Error jaringan: ${response.status} ${response.statusText}`);
                 }
                 
-                // Jika Apps Script mengembalikan { error: "..." }
+                // Jika Apps Script mengembalikan { error: "..." } di body JSON
                 if (result.error) {
                     throw new Error(result.error);
                 }
@@ -1352,7 +1359,7 @@
                 return result;
             } catch (error) {
                 console.error(`Panggilan API gagal untuk aksi: ${action}`, error);
-                throw error;
+                throw error; // Propagasi error ke pemanggil
             }
         }
 
