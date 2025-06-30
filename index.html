@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistem Manajemen Invoice</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
     <style>
         /* CSS Umum */
         * {
@@ -161,6 +162,11 @@
             background: var(--success-gradient);
             color: white;
         }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            color: white;
+        }
 
         /* Header Aplikasi Utama */
         .header {
@@ -210,6 +216,13 @@
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
             gap: 20px;
             margin-bottom: 30px;
+        }
+        
+        .control-group.buttons {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            justify-content: flex-end; /* Posisikan tombol di kanan */
         }
 
         .control-group {
@@ -289,6 +302,19 @@
         .data-table tr:hover {
             background: rgba(102, 126, 234, 0.1);
         }
+        
+        .data-table td.actions {
+            white-space: nowrap; /* Mencegah tombol melompat ke baris baru */
+        }
+        
+        .data-table td.actions button {
+            margin-left: 5px;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
 
         .editable-cell {
             position: relative;
@@ -302,6 +328,9 @@
             border-radius: 6px;
             transition: all 0.3s ease;
             width: 100%;
+            -webkit-appearance: none; /* Hilangkan styling default pada input date */
+            -moz-appearance: none;
+            appearance: none;
         }
 
         .editable-input:focus {
@@ -387,6 +416,93 @@
             color: #333;
         }
 
+        /* Modal Styles */
+        .modal {
+            display: none; /* Hidden by default */
+            position: fixed; /* Stay in place */
+            z-index: 100; /* Sit on top */
+            left: 0;
+            top: 0;
+            width: 100%; /* Full width */
+            height: 100%; /* Full height */
+            overflow: auto; /* Enable scroll if needed */
+            background-color: rgba(0,0,0,0.6); /* Black w/ opacity */
+            backdrop-filter: blur(5px);
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: var(--card-dark);
+            margin: auto;
+            padding: 30px;
+            border: 1px solid var(--border-dark);
+            border-radius: 15px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 10px 20px var(--shadow-dark);
+            animation: zoomIn 0.3s ease-out;
+            position: relative;
+        }
+        
+        @keyframes zoomIn {
+            from {
+                opacity: 0;
+                transform: scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border-dark);
+        }
+
+        .modal-title {
+            font-size: 1.8rem;
+            color: var(--text-light);
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .close-button {
+            color: var(--text-muted);
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            background: none;
+            border: none;
+            padding: 0;
+        }
+
+        .close-button:hover,
+        .close-button:focus {
+            color: var(--text-light);
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-dark);
+        }
+        
+        .modal-footer .btn {
+            padding: 10px 20px;
+            font-size: 15px;
+            border-radius: 8px;
+        }
+
         /* Responsif */
         @media (max-width: 768px) {
             .container {
@@ -411,6 +527,10 @@
             .data-table td {
                 padding: 10px;
             }
+            
+            .control-group.buttons {
+                justify-content: center; /* Pusatkan tombol di mobile */
+            }
         }
     </style>
 </head>
@@ -423,18 +543,18 @@
             <h1 class="login-title">Login</h1>
             <form id="loginForm">
                 <div class="form-group">
-                    <label class="form-label">Pilih Cabang</label>
-                    <select id="cabangSelect" class="form-select" required>
+                    <label for="cabangSelect" class="form-label">Pilih Cabang</label>
+                    <select id="cabangSelect" class="form-select" required aria-label="Pilih Cabang">
                         <option value="">-- Pilih Cabang --</option>
                     </select>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">PIN</label>
-                    <input type="password" id="pinInput" class="form-input" placeholder="Masukkan PIN" required>
+                    <label for="pinInput" class="form-label">PIN</label>
+                    <input type="password" id="pinInput" class="form-input" placeholder="Masukkan PIN" required aria-label="Masukkan PIN">
                 </div>
                 <button type="submit" class="btn btn-primary">LOGIN</button>
             </form>
-            <div id="loginAlert"></div>
+            <div id="loginAlert" class="mt-2"></div>
         </div>
     </div>
 
@@ -444,7 +564,7 @@
             <h1 class="header-title">Manajemen Invoice</h1>
             <div class="user-info">
                 <span id="userCabang"></span>
-                <button id="logoutBtn" class="logout-btn">Logout</button>
+                <button id="logoutBtn" class="logout-btn" aria-label="Logout">Logout</button>
             </div>
         </div>
 
@@ -452,17 +572,23 @@
 
         <div class="controls">
             <div class="control-group">
-                <label class="form-label">Filter Cabang</label>
-                <select id="cabangFilter" class="form-select">
+                <label for="cabangFilter" class="form-label">Filter Cabang</label>
+                <select id="cabangFilter" class="form-select" aria-label="Filter Cabang">
                     <option value="">Semua Cabang</option>
                 </select>
             </div>
             <div class="control-group">
-                <label class="form-label">Pencarian</label>
+                <label for="searchInput" class="form-label">Pencarian</label>
                 <div class="search-box">
-                    <input type="text" id="searchInput" class="search-input" placeholder="Cari Invoice atau Pelanggan...">
-                    <span class="search-icon">🔍</span>
+                    <input type="text" id="searchInput" class="search-input" placeholder="Cari Invoice atau Pelanggan..." aria-label="Cari Invoice atau Pelanggan">
+                    <span class="search-icon"><i class="fas fa-search"></i></span>
                 </div>
+            </div>
+            <div class="control-group buttons">
+                <!-- Tombol Tambah Invoice (hanya terlihat oleh JKT) -->
+                <button id="addInvoiceBtn" class="btn btn-success hidden" aria-label="Tambah Invoice">
+                    <i class="fas fa-plus-circle"></i> Tambah Invoice
+                </button>
             </div>
         </div>
 
@@ -481,19 +607,83 @@
                         <th>Lokasi Invoice</th>
                         <th>Tanggal Tanda Terima</th>
                         <th>Status</th>
+                        <th>Aksi</th> <!-- Tambah kolom Aksi -->
                     </tr>
                 </thead>
                 <tbody id="tableBody">
+                    <!-- Data akan dirender di sini -->
                 </tbody>
             </table>
         </div>
     </div>
 
+    <!-- Modal Tambah Invoice -->
+    <div id="addInvoiceModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Tambah Invoice Baru</h2>
+                <button type="button" class="close-button" id="closeAddInvoiceModal" aria-label="Tutup Modal">
+                    &times;
+                </button>
+            </div>
+            <form id="addInvoiceForm">
+                <div class="form-group">
+                    <label for="newInvoiceNum" class="form-label">Nomor Invoice</label>
+                    <input type="text" id="newInvoiceNum" class="form-input" required aria-label="Nomor Invoice Baru">
+                </div>
+                <div class="form-group">
+                    <label for="newInvoiceDate" class="form-label">Tanggal</label>
+                    <input type="date" id="newInvoiceDate" class="form-input" required aria-label="Tanggal Invoice Baru">
+                </div>
+                <div class="form-group">
+                    <label for="newInvoiceCustomer" class="form-label">Pelanggan</label>
+                    <input type="text" id="newInvoiceCustomer" class="form-input" required aria-label="Nama Pelanggan Baru">
+                </div>
+                <div class="form-group">
+                    <label for="newInvoiceValue" class="form-label">Nilai Asli</label>
+                    <input type="number" id="newInvoiceValue" class="form-input" required min="0" aria-label="Nilai Asli Invoice Baru">
+                </div>
+                <div class="form-group">
+                    <label for="newInvoiceCabang" class="form-label">Cabang</label>
+                    <select id="newInvoiceCabang" class="form-select" required aria-label="Cabang Invoice Baru">
+                        <!-- Opsi cabang akan diisi secara dinamis -->
+                    </select>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" id="cancelAddInvoice">Batal</button>
+                    <button type="submit" class="btn btn-primary">Tambah</button>
+                </div>
+            </form>
+            <div id="addInvoiceAlert" class="mt-2"></div>
+        </div>
+    </div>
+
+    <!-- Modal Konfirmasi Hapus -->
+    <div id="deleteConfirmModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Konfirmasi Hapus Invoice</h2>
+                <button type="button" class="close-button" id="closeDeleteConfirmModal" aria-label="Tutup Modal Konfirmasi Hapus">
+                    &times;
+                </button>
+            </div>
+            <p>Apakah Anda yakin ingin menghapus invoice <strong id="invoiceToDeleteNum"></strong>?</p>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="cancelDelete">Batal</button>
+                <button type="button" class="btn btn-danger" id="confirmDelete">Hapus</button>
+            </div>
+            <div id="deleteConfirmAlert" class="mt-2"></div>
+        </div>
+    </div>
+
+
     <script>
         // Konfigurasi
         const CONFIG = {
-            APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbzRiuxnkv0P5Qnv9nBIZq2yONtceq3gNS8Fxt9e-ZwSqqh-mCWS3g8Pk8eHZy6hSB0n/exec', // URL Apps Script
-            CSV_URL: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTXsbh4-sMEVfaBTSgHJI13nMK1LxvLZunHOeneWCUrzEjbplYmWpGEQW2TgqmrLqWMS-RtLJ0Y3Mjo/pub?gid=797503768&single=true&output=csv', // URL CSV untuk data master
+            // Ganti URL Apps Script Anda di sini. Pastikan ini adalah URL Deploy "Web app" terbaru.
+            APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbzDHEudwsLMgUXRFFJKUCzLl_tub9Njxmvl35T2MnoIOwDqdLKmYEDqX9B47UvSP3G4/exec', 
+            // URL CSV untuk data master, pastikan ini adalah URL "Publish to web" sebagai CSV
+            CSV_URL: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTXsbh4-sMEVfaBTSgHJI13nMK1LxvLZunHOeneWCUrzEjbplYmWpGEQW2TgqmrLqWMS-RtLJ0Y3Mjo/pub?gid=797503768&single=true&output=csv', 
             LOKASI_OPTIONS: ['Kantor', 'Toko', 'Sales', 'Kolektor']
         };
 
@@ -502,114 +692,104 @@
         let masterData = [];
         let apiData = [];
         let combinedData = [];
-        let rolesData = [];
+        let rolesData = []; // Data peran dari Apps Script
 
-        // Inisialisasi aplikasi
+        // Inisialisasi aplikasi saat DOM selesai dimuat
         document.addEventListener('DOMContentLoaded', function() {
             initializeApp();
         });
 
+        // Fungsi inisialisasi utama
         async function initializeApp() {
             try {
                 console.log('=== Menginisialisasi Aplikasi ===');
-                await loadRolesData();
-                populateCabangSelect();
-                setupEventListeners();
+                await loadRolesData(); // Muat data peran terlebih dahulu
+                populateCabangSelect(); // Isi dropdown cabang login
+                setupEventListeners(); // Siapkan semua event listener
                 
             } catch (error) {
                 console.error('Error menginisialisasi aplikasi:', error);
-                showAlert('loginAlert', 'Gagal memuat data. Silakan refresh halaman.', 'error');
+                showAlert('loginAlert', 'Gagal memuat data awal. Silakan periksa koneksi atau URL Apps Script.', 'error');
             }
         }
 
-        // Menyiapkan event listener
+        // Menyiapkan semua event listener
         function setupEventListeners() {
             document.getElementById('loginForm').addEventListener('submit', handleLogin);
             document.getElementById('logoutBtn').addEventListener('click', handleLogout);
             document.getElementById('searchInput').addEventListener('input', handleSearch);
             document.getElementById('cabangFilter').addEventListener('change', handleCabangFilter);
+            
+            // Event listener untuk tombol Tambah Invoice
+            document.getElementById('addInvoiceBtn').addEventListener('click', showAddInvoiceModal);
+            document.getElementById('closeAddInvoiceModal').addEventListener('click', () => hideModal('addInvoiceModal'));
+            document.getElementById('cancelAddInvoice').addEventListener('click', () => hideModal('addInvoiceModal'));
+            document.getElementById('addInvoiceForm').addEventListener('submit', handleAddInvoice);
+
+            // Event listener untuk modal konfirmasi hapus
+            document.getElementById('closeDeleteConfirmModal').addEventListener('click', () => hideModal('deleteConfirmModal'));
+            document.getElementById('cancelDelete').addEventListener('click', () => hideModal('deleteConfirmModal'));
+            document.getElementById('confirmDelete').addEventListener('click', handleDeleteConfirmed);
         }
 
-        // Memuat data peran
+        // Memuat data peran (role model) dari Apps Script
         async function loadRolesData() {
             try {
-                console.log('Memuat data peran...');
-                const response = await fetch(`${CONFIG.APPS_SCRIPT_URL}?action=getRoles`);
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                console.log('Memuat data peran (role model)...');
+                const data = await makeApiCall('getRoles');
+                if (!Array.isArray(data)) {
+                    throw new Error('Format data peran tidak valid. Diharapkan array.');
                 }
-                
-                const data = await response.json();
-                console.log('Menerima data peran:', data);
-                
-                if (data.error) {
-                    throw new Error(data.error);
-                }
-                
-                if (!Array.isArray(data) || data.length === 0) {
-                    throw new Error('Tidak ada data peran yang diterima');
-                }
-                
                 rolesData = data;
                 console.log('Data peran berhasil dimuat:', rolesData);
-                
             } catch (error) {
                 console.error('Error memuat peran:', error);
-                showAlert('loginAlert', 'Gagal memuat data role. Pastikan Apps Script URL sudah benar dan dapat diakses.', 'error');
-                rolesData = []; 
+                showAlert('loginAlert', 'Gagal memuat data role. Pastikan Apps Script URL sudah benar dan sheet "role model" ada.', 'error');
+                rolesData = []; // Pastikan rolesData kosong jika ada error
             }
         }
 
-        // Mengisi pilihan cabang di form login
+        // Mengisi pilihan cabang di form login dari data peran
         function populateCabangSelect() {
             const select = document.getElementById('cabangSelect');
-            
-            // Hapus opsi yang ada kecuali opsi pertama
+            // Hapus opsi yang ada kecuali opsi pertama "-- Pilih Cabang --"
             while (select.children.length > 1) {
                 select.removeChild(select.lastChild);
             }
             
-            console.log('Mengisi pilihan cabang dengan:', rolesData);
+            // Mengambil daftar cabang unik dari rolesData
+            const uniqueCabangs = [...new Set(rolesData.map(role => role.cabang).filter(Boolean))].sort();
             
-            rolesData.forEach(role => {
-                if (role.cabang) {
-                    const option = document.createElement('option');
-                    option.value = role.cabang;
-                    option.textContent = role.cabang;
-                    select.appendChild(option);
-                }
+            uniqueCabangs.forEach(cabang => {
+                const option = document.createElement('option');
+                option.value = cabang;
+                option.textContent = cabang;
+                select.appendChild(option);
             });
-            
-            console.log('Pilihan cabang diisi, total opsi:', select.children.length);
+            console.log('Pilihan cabang diisi. Total opsi:', select.children.length);
         }
 
         // Menangani proses login
         async function handleLogin(e) {
             e.preventDefault();
+            clearAlert('loginAlert');
             
             const cabang = document.getElementById('cabangSelect').value.trim();
             const pin = document.getElementById('pinInput').value.trim();
             
             console.log('Percobaan login:', { cabang, pin });
-            console.log('Peran yang tersedia:', rolesData);
             
             if (!cabang || !pin) {
                 showAlert('loginAlert', 'Silakan pilih cabang dan masukkan PIN!', 'error');
                 return;
             }
             
-            // Validasi login - normalisasi data untuk perbandingan
-            const user = rolesData.find(role => {
-                const roleCabang = role.cabang ? role.cabang.toString().trim().toLowerCase() : '';
-                const rolePin = role.pin ? role.pin.toString().trim() : '';
-                const inputCabang = cabang.toLowerCase();
-                const inputPin = pin;
-                
-                console.log('Membandingkan:', { roleCabang, rolePin, inputCabang, inputPin });
-                
-                return roleCabang === inputCabang && rolePin === inputPin;
-            });
+            // Validasi login
+            const user = rolesData.find(role => 
+                role.cabang && role.pin && 
+                role.cabang.toString().trim().toLowerCase() === cabang.toLowerCase() && 
+                role.pin.toString().trim() === pin
+            );
             
             console.log('Hasil login:', user);
             
@@ -619,8 +799,15 @@
                 document.getElementById('mainApp').classList.remove('hidden');
                 document.getElementById('userCabang').textContent = `Cabang: ${cabang}`;
                 
+                // Tampilkan tombol tambah invoice jika user adalah JKT
+                if (currentUser.cabang === 'JKT') {
+                    document.getElementById('addInvoiceBtn').classList.remove('hidden');
+                } else {
+                    document.getElementById('addInvoiceBtn').classList.add('hidden');
+                }
+
                 showAlert('appAlert', 'Login berhasil!', 'success');
-                await loadMainData();
+                await loadMainData(); // Muat data utama setelah login berhasil
             } else {
                 showAlert('loginAlert', 'Cabang atau PIN salah! Silakan periksa kembali.', 'error');
                 console.log('Login gagal - kredensial tidak ditemukan');
@@ -633,33 +820,30 @@
             document.getElementById('mainApp').classList.add('hidden');
             document.getElementById('loginScreen').classList.remove('hidden');
             document.getElementById('loginForm').reset();
+            document.getElementById('searchInput').value = ''; // Reset pencarian
+            document.getElementById('cabangFilter').value = ''; // Reset filter cabang
             clearAlert('loginAlert');
+            clearAlert('appAlert');
+            document.getElementById('addInvoiceBtn').classList.add('hidden'); // Sembunyikan tombol tambah
         }
 
-        // Memuat data utama (master data dan API data)
+        // Memuat data utama (master data dari CSV dan data API dari Apps Script)
         async function loadMainData() {
             try {
                 showLoading(true);
+                clearAlert('appAlert');
                 
-                // Muat master data dari CSV
-                await loadMasterData();
+                await loadMasterData(); // Muat master data dari CSV
+                await loadApiData();    // Muat data API dari Apps Script
                 
-                // Muat data API
-                await loadApiData();
-                
-                // Gabungkan data
-                combineData();
-                
-                // Isi filter cabang
-                populateCabangFilter();
-                
-                // Render tabel
-                renderTable();
+                combineData();          // Gabungkan data
+                populateCabangFilter(); // Isi filter cabang
+                renderTable();          // Render tabel
                 
                 showLoading(false);
             } catch (error) {
                 console.error('Error memuat data utama:', error);
-                showAlert('appAlert', 'Gagal memuat data. Silakan refresh halaman.', 'error');
+                showAlert('appAlert', 'Gagal memuat data. Silakan refresh halaman atau periksa konfigurasi URL.', 'error');
                 showLoading(false);
             }
         }
@@ -676,10 +860,10 @@
                 
                 const csvText = await response.text();
                 masterData = parseCSV(csvText); // Gunakan parseCSV
-                console.log('Master data berhasil dimuat dari CSV:', masterData);
+                console.log('Master data berhasil dimuat dari CSV. Jumlah baris:', masterData.length);
             } catch (error) {
                 console.error('Error memuat master data dari CSV:', error);
-                showAlert('appAlert', 'Gagal memuat master data dari CSV. Pastikan URL CSV sudah benar dan dapat diakses.', 'error');
+                showAlert('appAlert', 'Gagal memuat master data dari CSV. Pastikan URL CSV sudah benar.', 'error');
                 masterData = [];
             }
         }
@@ -687,32 +871,33 @@
         // Memuat data dari API Apps Script
         async function loadApiData() {
             try {
-                const response = await fetch(`${CONFIG.APPS_SCRIPT_URL}?action=getApiData`);
-                const data = await response.json();
-                if (data.error) {
-                    throw new Error(data.error);
+                console.log('Memuat data API dari Apps Script...');
+                const data = await makeApiCall('getApiData');
+                if (!Array.isArray(data)) {
+                     throw new Error('Format data API tidak valid. Diharapkan array.');
                 }
                 apiData = data;
+                console.log('Data API berhasil dimuat. Jumlah baris:', apiData.length);
             } catch (error) {
                 console.error('Error memuat data API:', error);
-                showAlert('appAlert', 'Gagal memuat data API. Pastikan Apps Script URL sudah benar.', 'error');
+                showAlert('appAlert', 'Gagal memuat data API. Pastikan Apps Script URL sudah benar dan sheet "API" ada.', 'error');
                 apiData = [];
             }
         }
 
-        // Mengurai data CSV
+        // Mengurai data CSV ke dalam format array of objects
         function parseCSV(csvText) {
             const lines = csvText.trim().split('\n');
             if (lines.length <= 1) { 
-                return [];
+                return []; // Mengembalikan array kosong jika tidak ada data atau hanya header
             }
-            const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+            const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, '').toLowerCase()); // Header ke lowercase
             const data = [];
             
             for (let i = 1; i < lines.length; i++) {
-                const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
+                const values = lines[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(v => v.trim().replace(/"/g, '')); // Regex untuk handle koma di dalam quote
                 if (values.length === 0 || (values.length === 1 && values[0] === '')) { 
-                    continue;
+                    continue; // Lewati baris kosong
                 }
                 const row = {};
                 headers.forEach((header, index) => {
@@ -733,6 +918,7 @@
                     'tanggal tanda terima': api['tanggal tanda terima'] || ''
                 };
             });
+            console.log('Data digabungkan. Jumlah baris:', combinedData.length);
         }
 
         // Mengisi pilihan filter cabang
@@ -743,7 +929,8 @@
                 select.removeChild(select.lastChild);
             }
 
-            const cabangList = [...new Set(combinedData.map(item => item.cabang))].sort();
+            // Mengambil daftar cabang unik dari combinedData
+            const cabangList = [...new Set(combinedData.map(item => item.cabang).filter(Boolean))].sort();
             
             cabangList.forEach(cabang => {
                 const option = document.createElement('option');
@@ -756,7 +943,7 @@
         // Merender tabel data
         function renderTable() {
             const tbody = document.getElementById('tableBody');
-            tbody.innerHTML = '';
+            tbody.innerHTML = ''; // Kosongkan tabel sebelum render ulang
             
             let filteredData = [...combinedData];
             
@@ -778,13 +965,21 @@
                 );
             }
             
+            if (filteredData.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding:20px;">Tidak ada data yang ditemukan.</td></tr>`;
+                document.getElementById('dataTable').classList.remove('hidden');
+                return;
+            }
+
             filteredData.forEach(item => {
                 const row = document.createElement('tr');
                 
                 // Logika hak akses:
-                // JKT bisa edit semua.
+                // JKT bisa edit dan hapus semua.
                 // Cabang lain hanya bisa edit data yang cabangnya sama dengan cabang mereka.
-                const canEdit = currentUser.cabang === 'JKT' || currentUser.cabang === item.cabang;
+                const canEdit = currentUser.cabang === 'JKT' || (item.cabang && currentUser.cabang === item.cabang);
+                const canDelete = currentUser.cabang === 'JKT'; // Hanya JKT yang bisa menghapus
+
                 const status = (item['lokasi invoice'] && item['tanggal tanda terima']) ? 'completed' : 'pending';
                 
                 row.innerHTML = `
@@ -794,15 +989,18 @@
                     <td>${formatCurrency(item['original value'])}</td>
                     <td>${item.cabang}</td>
                     <td class="editable-cell">
-                        ${canEdit ? createLokasiSelect(item.invoice, item['lokasi invoice']) : item['lokasi invoice']}
+                        ${canEdit ? createLokasiSelect(item.invoice, item['lokasi invoice']) : (item['lokasi invoice'] || '-')}
                     </td>
                     <td class="editable-cell">
-                        ${canEdit ? createDateInput(item.invoice, item['tanggal tanda terima']) : item['tanggal tanda terima']}
+                        ${canEdit ? createDateInput(item.invoice, item['tanggal tanda terima']) : (item['tanggal tanda terima'] || '-')}
                     </td>
                     <td>
                         <span class="status-badge status-${status}">
                             ${status === 'completed' ? 'Selesai' : 'Pending'}
                         </span>
+                    </td>
+                    <td class="actions">
+                        ${canDelete ? `<button class="btn btn-danger btn-sm" onclick="prepareDeleteInvoice('${item.invoice}')" aria-label="Hapus Invoice ${item.invoice}"><i class="fas fa-trash"></i> Hapus</button>` : ''}
                     </td>
                 `;
                 
@@ -816,7 +1014,8 @@
         function createLokasiSelect(invoice, currentValue) {
             const select = document.createElement('select');
             select.className = 'editable-input';
-            select.onchange = () => updateInvoice(invoice, 'lokasi_invoice', select.value);
+            select.setAttribute('aria-label', `Lokasi Invoice ${invoice}`);
+            select.onchange = (event) => updateInvoice(invoice, 'lokasi_invoice', event.target.value);
             
             // Tambahkan opsi kosong
             const emptyOption = document.createElement('option');
@@ -830,7 +1029,9 @@
                 const option = document.createElement('option');
                 option.value = lokasi;
                 option.textContent = lokasi;
-                option.selected = currentValue === lokasi;
+                if (currentValue === lokasi) {
+                    option.selected = true;
+                }
                 select.appendChild(option);
             });
             
@@ -840,17 +1041,20 @@
         // Membuat elemen input tanggal
         function createDateInput(invoice, currentValue) {
             return `<input type="date" class="editable-input" value="${currentValue || ''}" 
-                    onchange="updateInvoice('${invoice}', 'tanggal_tanda_terima', this.value)">`;
+                    onchange="updateInvoice('${invoice}', 'tanggal_tanda_terima', this.value)" aria-label="Tanggal Tanda Terima ${invoice}">`;
         }
 
         // Memperbarui data invoice melalui API Apps Script
         async function updateInvoice(invoice, field, value) {
+            showLoading(true);
+            clearAlert('appAlert');
             try {
                 // Pastikan pengguna memiliki hak akses untuk mengedit
                 if (currentUser.cabang !== 'JKT') {
                     const invoiceToUpdate = combinedData.find(item => item.invoice === invoice);
                     if (invoiceToUpdate && invoiceToUpdate.cabang !== currentUser.cabang) {
                         showAlert('appAlert', 'Anda tidak memiliki izin untuk mengedit invoice cabang lain.', 'error');
+                        showLoading(false);
                         return;
                     }
                 }
@@ -860,29 +1064,21 @@
                     [field]: value
                 };
                 
-                const response = await fetch(`${CONFIG.APPS_SCRIPT_URL}?action=updateInvoice`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(data)
-                });
-                
-                const result = await response.json();
+                const result = await makeApiCall('updateInvoice', data);
                 
                 if (result.success) {
-                    // Perbarui data lokal
-                    const apiItem = apiData.find(item => item.invoice === invoice);
-                    if (apiItem) {
-                        apiItem[field.replace('_', ' ')] = value;
+                    // Perbarui data lokal di apiData
+                    const apiItemIndex = apiData.findIndex(item => item.invoice === invoice);
+                    if (apiItemIndex > -1) {
+                        apiData[apiItemIndex][field.replace('_', ' ')] = value;
                     } else {
-                        apiData.push({
-                            invoice: invoice,
-                            [field.replace('_', ' ')]: value
-                        });
+                        // Jika invoice belum ada di apiData, tambahkan sebagai entri baru
+                        const newApiEntry = { invoice: invoice };
+                        newApiEntry[field.replace('_', ' ')] = value;
+                        apiData.push(newApiEntry);
                     }
                     
-                    // Gabungkan kembali dan render ulang tabel
+                    // Gabungkan kembali dan render ulang tabel untuk mencerminkan perubahan
                     combineData();
                     renderTable();
                     
@@ -893,6 +1089,150 @@
             } catch (error) {
                 console.error('Error memperbarui invoice:', error);
                 showAlert('appAlert', 'Gagal memperbarui data: ' + error.message, 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // Menampilkan modal tambah invoice
+        function showAddInvoiceModal() {
+            clearAlert('addInvoiceAlert');
+            document.getElementById('addInvoiceForm').reset(); // Bersihkan form
+            const newInvoiceCabangSelect = document.getElementById('newInvoiceCabang');
+            newInvoiceCabangSelect.innerHTML = '<option value="">-- Pilih Cabang --</option>'; // Kosongkan opsi
+            
+            // Isi dropdown cabang di modal tambah invoice dari rolesData
+            const uniqueCabangs = [...new Set(rolesData.map(role => role.cabang).filter(Boolean))].sort();
+            uniqueCabangs.forEach(cabang => {
+                const option = document.createElement('option');
+                option.value = cabang;
+                option.textContent = cabang;
+                newInvoiceCabangSelect.appendChild(option);
+            });
+
+            document.getElementById('addInvoiceModal').style.display = 'flex';
+        }
+
+        // Menangani pengiriman form tambah invoice
+        async function handleAddInvoice(e) {
+            e.preventDefault();
+            clearAlert('addInvoiceAlert');
+            showLoading(true);
+
+            const newInvoiceNum = document.getElementById('newInvoiceNum').value.trim();
+            const newInvoiceDate = document.getElementById('newInvoiceDate').value.trim();
+            const newInvoiceCustomer = document.getElementById('newInvoiceCustomer').value.trim();
+            const newInvoiceValue = parseFloat(document.getElementById('newInvoiceValue').value.trim());
+            const newInvoiceCabang = document.getElementById('newInvoiceCabang').value.trim();
+
+            if (!newInvoiceNum || !newInvoiceDate || !newInvoiceCustomer || isNaN(newInvoiceValue) || !newInvoiceCabang) {
+                showAlert('addInvoiceAlert', 'Semua field harus diisi dengan benar!', 'error');
+                showLoading(false);
+                return;
+            }
+
+            const invoiceExists = combinedData.some(item => item.invoice.toLowerCase() === newInvoiceNum.toLowerCase());
+            if (invoiceExists) {
+                showAlert('addInvoiceAlert', 'Nomor Invoice ini sudah ada!', 'error');
+                showLoading(false);
+                return;
+            }
+
+            const newData = {
+                invoice: newInvoiceNum,
+                tanggal: newInvoiceDate,
+                pelanggan: newInvoiceCustomer,
+                'original value': newInvoiceValue, // Pastikan sesuai dengan header CSV
+                cabang: newInvoiceCabang,
+                'lokasi invoice': '', // Kosong saat baru ditambahkan
+                'tanggal tanda terima': '' // Kosong saat baru ditambahkan
+            };
+
+            try {
+                // Tambahkan ke masterData (yang dari CSV) secara lokal
+                masterData.push({
+                    invoice: newData.invoice,
+                    tanggal: newData.tanggal,
+                    pelanggan: newData.pelanggan,
+                    'original value': newData['original value'],
+                    cabang: newData.cabang
+                });
+
+                // Tambahkan ke apiData (yang dari Apps Script) melalui API
+                const apiResult = await makeApiCall('addInvoice', {
+                    invoice: newData.invoice,
+                    'lokasi invoice': newData['lokasi invoice'],
+                    'tanggal tanda terima': newData['tanggal tanda terima'],
+                    tanggal: newData.tanggal, // Apps Script mungkin butuh tanggal dan lainnya juga
+                    pelanggan: newData.pelanggan,
+                    'original value': newData['original value'],
+                    cabang: newData.cabang
+                });
+
+                if (apiResult.success) {
+                    // Update apiData lokal jika addInvoice di Apps Script juga mengembalikan data yang ditambahkan
+                    apiData.push({
+                        invoice: newData.invoice,
+                        'lokasi invoice': newData['lokasi invoice'],
+                        'tanggal tanda terima': newData['tanggal tanda terima']
+                    });
+
+                    combineData(); // Gabungkan ulang data
+                    renderTable(); // Render ulang tabel
+                    hideModal('addInvoiceModal');
+                    showAlert('appAlert', 'Invoice baru berhasil ditambahkan!', 'success');
+                } else {
+                    throw new Error(apiResult.message || 'Gagal menambahkan invoice melalui Apps Script.');
+                }
+            } catch (error) {
+                console.error('Error menambah invoice:', error);
+                // Jika gagal di API, hapus dari masterData lokal yang sudah ditambahkan
+                masterData = masterData.filter(item => item.invoice !== newInvoiceNum);
+                showAlert('addInvoiceAlert', 'Gagal menambahkan invoice: ' + error.message, 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        let invoiceToDelete = null; // Variabel untuk menyimpan invoice yang akan dihapus
+
+        // Menyiapkan modal konfirmasi hapus
+        function prepareDeleteInvoice(invoiceNum) {
+            invoiceToDelete = invoiceNum;
+            document.getElementById('invoiceToDeleteNum').textContent = invoiceNum;
+            clearAlert('deleteConfirmAlert');
+            document.getElementById('deleteConfirmModal').style.display = 'flex';
+        }
+
+        // Menangani konfirmasi hapus invoice
+        async function handleDeleteConfirmed() {
+            if (!invoiceToDelete) return;
+
+            showLoading(true);
+            clearAlert('deleteConfirmAlert');
+            clearAlert('appAlert');
+
+            try {
+                const result = await makeApiCall('deleteInvoice', { invoice: invoiceToDelete });
+
+                if (result.success) {
+                    // Hapus dari data lokal
+                    masterData = masterData.filter(item => item.invoice !== invoiceToDelete);
+                    apiData = apiData.filter(item => item.invoice !== invoiceToDelete);
+                    
+                    combineData();
+                    renderTable();
+                    hideModal('deleteConfirmModal');
+                    showAlert('appAlert', 'Invoice berhasil dihapus!', 'success');
+                } else {
+                    throw new Error(result.message);
+                }
+            } catch (error) {
+                console.error('Error menghapus invoice:', error);
+                showAlert('deleteConfirmAlert', 'Gagal menghapus invoice: ' + error.message, 'error');
+            } finally {
+                showLoading(false);
+                invoiceToDelete = null; // Reset setelah operasi selesai
             }
         }
 
@@ -908,12 +1248,14 @@
 
         // Memformat nilai mata uang
         function formatCurrency(value) {
-            if (!value) return '';
+            if (value === null || value === undefined || value === '') return ''; // Tangani nilai kosong atau null
+            const numValue = typeof value === 'string' ? parseFloat(value.replace(/[^0-9,-]+/g,"").replace(",", ".")) : value;
+            if (isNaN(numValue)) return '';
             return new Intl.NumberFormat('id-ID', {
                 style: 'currency',
                 currency: 'IDR',
                 minimumFractionDigits: 0
-            }).format(value);
+            }).format(numValue);
         }
 
         // Menampilkan/menyembunyikan spinner loading
@@ -950,24 +1292,59 @@
             document.getElementById(containerId).innerHTML = '';
         }
 
-        // Fungsi utilitas untuk memanggil API dengan penanganan error
-        async function makeApiCall(action, data = null) {
+        // Fungsi untuk menampilkan modal
+        function showModal(modalId) {
+            document.getElementById(modalId).style.display = 'flex';
+        }
+
+        // Fungsi untuk menyembunyikan modal
+        function hideModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+
+        // Fungsi utilitas untuk memanggil API dengan penanganan error yang lebih baik
+        async function makeApiCall(action, data = null, method = null) {
+            let url = `${CONFIG.APPS_SCRIPT_URL}?action=${action}`;
+            let options = {
+                method: method || (data ? 'POST' : 'GET'), // Gunakan method yang diberikan atau tentukan otomatis
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json' // Tambah header Accept
+                }
+            };
+
+            // Untuk preflight OPTIONS request
+            if (options.method === 'OPTIONS') {
+                url += '&do=options'; // Indikator untuk Apps Script agar ini adalah OPTIONS request
+            }
+            
+            if (data && options.method !== 'GET') { // Hanya sertakan body untuk POST, PUT, DELETE
+                options.body = JSON.stringify(data);
+            }
+
+            console.log(`Memanggil API: ${url} dengan method: ${options.method}`, data);
+            
             try {
-                const url = `${CONFIG.APPS_SCRIPT_URL}?action=${action}`;
-                const options = {
-                    method: data ? 'POST' : 'GET',
-                    headers: {
-                        'Content-Type': 'application/json',
+                const response = await fetch(url, options);
+
+                // Jika preflight OPTIONS, respons tidak punya body, cukup return status ok
+                if (options.method === 'OPTIONS') {
+                    if (response.ok) {
+                        return { success: true, message: 'Preflight OK' };
+                    } else {
+                        throw new Error(`Preflight OPTIONS gagal dengan status: ${response.status}`);
                     }
-                };
+                }
+
+                // Untuk response non-OPTIONS, selalu coba parse JSON
+                const result = await response.json();
+                console.log('Respons API:', result);
                 
-                if (data) {
-                    options.body = JSON.stringify(data);
+                if (!response.ok) { // Jika status HTTP bukan 2xx
+                    throw new Error(result.error || `Error jaringan: ${response.status} ${response.statusText}`);
                 }
                 
-                const response = await fetch(url, options);
-                const result = await response.json();
-                
+                // Jika Apps Script mengembalikan { error: "..." }
                 if (result.error) {
                     throw new Error(result.error);
                 }
@@ -979,6 +1356,7 @@
             }
         }
 
+
         // Pintasan keyboard
         document.addEventListener('keydown', function(e) {
             if (e.ctrlKey && e.key === 'f') {
@@ -989,10 +1367,12 @@
             if (e.key === 'Escape') {
                 document.getElementById('searchInput').value = '';
                 renderTable();
+                hideModal('addInvoiceModal'); // Sembunyikan modal jika Esc ditekan
+                hideModal('deleteConfirmModal'); // Sembunyikan modal delete jika Esc ditekan
             }
         });
 
-        // Pengguliran halus untuk UX yang lebih baik
+        // Pengguliran halus untuk UX yang lebih baik (jika ada anchor links)
         document.querySelectorAll('a[href^="#"]').forEach(anchor => {
             anchor.addEventListener('click', function (e) {
                 e.preventDefault();
@@ -1004,4 +1384,3 @@
     </script>
 </body>
 </html>
-
