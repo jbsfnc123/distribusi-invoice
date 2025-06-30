@@ -493,7 +493,7 @@
         // Konfigurasi
         const CONFIG = {
             APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbwV_efAAiIe9PYCIoaXjZqsgG9WD3d5j-2IcYXDh0F95BdiKbStporUNhp0Syec-yEw/exec', // URL Apps Script
-            // CSV_URL tidak lagi digunakan langsung di sini, Apps Script akan mengelola fetching master data
+            CSV_URL: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTXsbh4-sMEVfaBTSgHJI13nMK1LxvLZunHOeneWCUrzEjbplYmWpGEQW2TgqmrLqWMS-RtLJ0Y3Mjo/pub?gid=797503768&single=true&output=csv', // URL CSV untuk data master
             LOKASI_OPTIONS: ['Kantor', 'Toko', 'Sales', 'Kolektor']
         };
 
@@ -641,8 +641,8 @@
             try {
                 showLoading(true);
                 
-                // Muat master data dari Apps Script
-                await loadMasterData(); // Perubahan di sini
+                // Muat master data dari CSV
+                await loadMasterData();
                 
                 // Muat data API
                 await loadApiData();
@@ -664,34 +664,23 @@
             }
         }
 
-        // Memuat master data dari Apps Script
+        // Memuat master data dari CSV langsung
         async function loadMasterData() {
             try {
-                console.log('Memuat master data dari Apps Script...');
-                const response = await fetch(`${CONFIG.APPS_SCRIPT_URL}?action=getMasterData`); // Memanggil Apps Script
+                console.log('Memuat master data dari CSV...');
+                const response = await fetch(CONFIG.CSV_URL);
                 
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 
-                const data = await response.json();
-                console.log('Menerima master data:', data);
-
-                if (data.error) {
-                    throw new Error(data.error);
-                }
-                
-                if (!Array.isArray(data) || data.length === 0) {
-                    throw new Error('Tidak ada master data yang diterima');
-                }
-
-                masterData = data;
-                console.log('Master data berhasil dimuat:', masterData);
-
+                const csvText = await response.text();
+                masterData = parseCSV(csvText); // Gunakan parseCSV
+                console.log('Master data berhasil dimuat dari CSV:', masterData);
             } catch (error) {
-                console.error('Error memuat master data:', error);
-                showAlert('appAlert', 'Gagal memuat master data. Pastikan Apps Script Anda memiliki fungsi "getMasterData" yang benar.', 'error');
-                masterData = []; // Tetapkan kosong jika gagal
+                console.error('Error memuat master data dari CSV:', error);
+                showAlert('appAlert', 'Gagal memuat master data dari CSV. Pastikan URL CSV sudah benar dan dapat diakses.', 'error');
+                masterData = [];
             }
         }
 
@@ -711,7 +700,7 @@
             }
         }
 
-        // Fungsi parseCSV tidak lagi digunakan untuk masterData, tetapi disimpan jika ada kebutuhan lain.
+        // Mengurai data CSV
         function parseCSV(csvText) {
             const lines = csvText.trim().split('\n');
             if (lines.length <= 1) { 
@@ -1015,3 +1004,4 @@
     </script>
 </body>
 </html>
+
